@@ -35,6 +35,8 @@
 #include "ui/views/examples/throbber_example.h"
 #include "ui/views/examples/tree_view_example.h"
 #include "ui/views/examples/widget_example.h"
+#include "ui/views/examples/video_save_view.h"
+#include "ui/views/examples/anima_example.h"
 #include "ui/views/focus/accelerator_handler.h"
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/layout/grid_layout.h"
@@ -157,7 +159,9 @@ ExamplesWindowContents(Operation operation,
   // Adds all the individual examples to the combobox model.
   void AddExamples() {
     // Please keep this list in alphabetical order!
+    combobox_model_.AddExample(new AnimaExample);
     combobox_model_.AddExample(new BubbleExample);
+    combobox_model_.AddExample(new VideoBarSaveExample);
 	  //combobox_model_.AddExample(new BubbleExample(browser_context_));
     combobox_model_.AddExample(new ButtonExample);
     combobox_model_.AddExample(new ComboboxExample);

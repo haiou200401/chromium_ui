@@ -613,6 +613,8 @@
         'VIEWS_EXAMPLES_IMPLEMENTATION',
       ],
       'sources': [
+        'examples/anima_example.cc',
+        'examples/anima_example.h',
         'examples/video_save_view.cc',
         'examples/video_save_view.h',
         'examples/bubble_example.cc',

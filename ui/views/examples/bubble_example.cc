@@ -119,6 +119,8 @@ void BubbleExample::ButtonPressed(Button* sender, const Event& event) {
   config.anchor_view = sender;
   ExampleBubbleDelegateView* bubble_delegate =
 	  new ExampleBubbleDelegateView(config );
+
+  bubble_delegate->set_use_focusless(true);
   Widget *wid = BubbleDelegateView::CreateBubble(bubble_delegate);
 
 #if 1 //test anima

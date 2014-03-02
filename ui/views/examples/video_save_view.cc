@@ -171,10 +171,12 @@ const int kLayoutSpacing = 10;  // pixels
       content_view_->set_background(Background::CreateSolidBackground(255, 255, 255));
 
 
-      BoxLayout* box_layout = new BoxLayout(BoxLayout::kVertical, 0, 0, 3);
-      this->SetLayoutManager(box_layout);
+      //BoxLayout* box_layout = new BoxLayout(BoxLayout::kVertical, 0, 0, 3);
+      //this->SetLayoutManager(box_layout);
       //this->SetLayoutManager(new FillLayout);
-      this->AddChildView(new Label(L"标题"));
+
+      title_ = new Label(L"标题");
+      this->AddChildView(title_);
       this->AddChildView(scroll_view_);
 
 
@@ -275,6 +277,7 @@ const int kLayoutSpacing = 10;  // pixels
     gfx::Size GetViewSize() const {
       GridLayout* grid_layout = (GridLayout*)content_view_->GetLayoutManager();
       gfx::Size content_size = grid_layout->GetPreferredSize(content_view_);
+      content_size.set_height(content_size.height()+50);
 
       gfx::Size view_size;
       if (content_size.height() > VIEW_HEIGHT_MAX) {
@@ -288,6 +291,13 @@ const int kLayoutSpacing = 10;  // pixels
       return view_size;
     }
   private:
+    virtual void Layout() {
+      const gfx::Rect& bound = bounds();
+
+      title_->SetBounds(0, 0, bound.width(), 50);
+      scroll_view_->SetBounds(0, 50, bound.width(), bound.height()-50);
+    }
+
     // Overridden from ButtonListener:
     virtual void ButtonPressed(Button* sender, const Event& event) {
     }
@@ -354,6 +364,7 @@ const int kLayoutSpacing = 10;  // pixels
       group_id++;
     }
 
+    Label* title_;
     ScrollView* scroll_view_;
     //ScrollableView* content_view_;
     View* content_view_;
@@ -501,7 +512,7 @@ void VideoBarSaveExample::PopupSavePanel(View* parent) {
   content_view->InitContent();
   //content_view->SetBounds(0, 0, 320, 480);
   widget_->SetContentsView(content_view); //widget_container);
-  gfx::Rect widget_bound(point.x(), point.y(), 250, 480);
+  gfx::Rect widget_bound(point.x(), point.y(), 250, 680);
   gfx::Size view_size = content_view->GetViewSize();
   widget_bound.set_width(view_size.width());
   widget_bound.set_height(view_size.height());
