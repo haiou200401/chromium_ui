@@ -23,12 +23,12 @@
 #include "ui/views/layout/grid_layout.h"
 #include "ui/views/view.h"
 #include "ui/views/border.h"
-#include "ui/views/widget/widget.h"
 #include "base/stringprintf.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "grit/ui_resources.h"
 #include "ui/gfx/image/image.h"
 #include "ui/views/widget/widget.h"
+#include "ui/views/widget/root_view.h"
 
 namespace views {
 namespace examples {
@@ -114,261 +114,283 @@ const int kLayoutSpacing = 10;  // pixels
     return result_text;
   }
 
-  class ScrollableView : public View {
-  public:
-    ScrollableView() {
-      SetColor(SK_ColorRED, SK_ColorCYAN);
-      AddChildView(new TextButton(NULL, ASCIIToUTF16("Button")));
-      AddChildView(new RadioButton(ASCIIToUTF16("Radio Button"), 0));
-    }
+const int VIEW_HEIGHT_MAX = 420;
+const int VIEW_BORDER_SIZE = 1;
+const int VIEW_HOR_MARGIN = 12;
+const int VIEW_VER_MARGIN = 3;
 
-    virtual gfx::Size GetPreferredSize() {
-      return gfx::Size(width(), height());
-    }
+class TitleBarView : public View {
+public:
+  TitleBarView() :
+      title_(NULL)
+        ,btn_save_all_(NULL){
 
-    void SetColor(SkColor from, SkColor to) {
-      set_background(Background::CreateVerticalGradientBackground(from, to));
-    }
+          set_border(Border::CreateSolidBorder(VIEW_BORDER_SIZE, SK_ColorGRAY));
 
-    void PlaceChildY(int index, int y) {
-      View* view = child_at(index);
-      gfx::Size size = view->GetPreferredSize();
-      view->SetBounds(0, y, size.width(), size.height());
-    }
-
-    virtual void Layout() {
-      PlaceChildY(0, 0);
-      PlaceChildY(1, height() / 2);
-      SizeToPreferredSize();
-    }
-
-  private:
-    DISALLOW_COPY_AND_ASSIGN(ScrollableView);
-  };
-
-
-  const int VIEW_HEIGHT_MAX = 420;
-  const int VIEW_BORDER_SIZE = 1;
-  class VideoSaveContentView : public View, public ButtonListener, public LinkListener{
-  public:
-    VideoSaveContentView() {
-      //Border *border = Border::CreateSolidBorder(1, SkColorSetRGB(60, 60, 60));
-      //set_border(border);
-    }
-
-    void InitContent() {
-
-      content_view_ = new View(); //ScrollableView();
-
-      //scroll_view_ = new VideoItemScrollView();
-      scroll_view_ = new ScrollView();
-      scroll_view_->SetContents(content_view_);
-      //scroll_view_->SetContents(new Label(L"test label"));
-      gfx::Rect rc = scroll_view_->GetVisibleRect();
-
-
-      set_background(Background::CreateSolidBackground(0, 255, 0));
-      content_view_->set_background(Background::CreateSolidBackground(255, 255, 255));
-
-
-      //BoxLayout* box_layout = new BoxLayout(BoxLayout::kVertical, 0, 0, 3);
-      //this->SetLayoutManager(box_layout);
-      //this->SetLayoutManager(new FillLayout);
-
-      title_ = new Label(L"标题");
-      this->AddChildView(title_);
-      this->AddChildView(scroll_view_);
-
-
-      GridLayout* grid_layout = new GridLayout(content_view_);
-      content_view_->SetLayoutManager(grid_layout);
-
-
-      int column_set_id;
-      ColumnSet* column_set = NULL;
-
-      //tooltip
-      column_set_id = 0;
-      column_set = grid_layout->AddColumnSet(column_set_id);
-      column_set->AddPaddingColumn(0, 12);  //left padding
-      //save all
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0.5f,
-        GridLayout::USE_PREF, 0, 0);
-      //setting
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0.5f,
-        GridLayout::USE_PREF, 0, 0);
-
-      grid_layout->StartRow(0, column_set_id);
-      grid_layout->AddView(new Label(L"保存全部"));
-      grid_layout->AddView(new Label(L"设置"));
-
-
-
-      //Separator
-      column_set_id = 1;
-      column_set = grid_layout->AddColumnSet(column_set_id);
-      column_set->AddPaddingColumn(0, 5);  //left padding
-      column_set->AddColumn(GridLayout::FILL, GridLayout::CENTER, 0.5f,
-        GridLayout::USE_PREF, 0, 0);
-
-      grid_layout->AddPaddingRow(0, 5);
-      grid_layout->StartRow(0, column_set_id);
-      grid_layout->AddView(new Separator());
-      grid_layout->AddPaddingRow(0, 5);
-
-
-      column_set_id = 2;
-      column_set = grid_layout->AddColumnSet(column_set_id);
-
-      column_set->AddPaddingColumn(0, 12);  //left padding
-
-      // icon
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0, //0.4f,
-        GridLayout::FIXED, 19, 0);
-      column_set->AddPaddingColumn(0, 3);
-
-      // filename
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0, //0.4f,
-        GridLayout::FIXED, 120, 0);
-      column_set->AddPaddingColumn(0, 15);
-
-      // save
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0, //0.2f,
-        GridLayout::USE_PREF, 0, 0);
-      column_set->AddPaddingColumn(0, 5);
-
-      // copy link
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0, //0.2f,
-        GridLayout::USE_PREF, 0, 0);
-      column_set->AddPaddingColumn(0, 15);
-
-      // file size
-      column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0, //0.2f,
-        GridLayout::USE_PREF, 0, 0);
-
-      column_set->AddPaddingColumn(0, 12); //right padding
-
-
-      gfx::Rect content_bound;
-      gfx::Size layout_size;
-      content_bound = content_view_->GetContentsBounds();
-
-      AddColumnSet(grid_layout, L"条条大路通罗马，条条大路通罗马，条条大路通罗马file1.flv", 3*1024+3);
-      AddColumnSet(grid_layout, L"file2.flv", 1024*1024*6.2);
-      AddColumnSet(grid_layout, L"https://chromium.googlesource.com/android_tools.git.flv", 300);
-      AddColumnSet(grid_layout, L"file4.flv", 1024);
-      AddColumnSet(grid_layout, L"file5.flv", 1235);
-
-      for( int i=0; i<3; i++) {
-        string16 file_name = StringPrintf(L"filename%d.flv", i);
-        AddColumnSet(grid_layout, file_name, i*1024*1024*1024);
+          title_ = new Link(L"资源列表");
+          title_->set_id(BTN_ID_SETTING);
+          btn_save_all_ = new Link(L"全部保存");
+          btn_save_all_->set_id(BTN_ID_SAVE_ALL);
+          AddChildView(title_);
+          AddChildView(btn_save_all_);
       }
 
-
-      layout_size = grid_layout->GetPreferredSize(content_view_);
-      content_view_->SetBounds(0, 0, layout_size.width(), layout_size.height());
-
-      gfx::Rect view_rect(0, 0, 320, 480);
-      //scroll_view_->ScrollContentsRegionToBeVisible(view_rect);
-
-      Border *border = Border::CreateSolidBorder(VIEW_BORDER_SIZE, SkColorSetRGB(169, 169, 169));
-      scroll_view_->set_border(border);
-    }
-    gfx::Size GetViewSize() const {
-      GridLayout* grid_layout = (GridLayout*)content_view_->GetLayoutManager();
-      gfx::Size content_size = grid_layout->GetPreferredSize(content_view_);
-      content_size.set_height(content_size.height()+50);
-
-      gfx::Size view_size;
-      if (content_size.height() > VIEW_HEIGHT_MAX) {
-        view_size.set_height(VIEW_HEIGHT_MAX);
-        view_size.set_width(content_size.width() + scroll_view_->GetScrollBarWidth());
-      } else {
-        view_size = content_size;
+      void set_listener(LinkListener* listener) {
+        if (title_)
+          title_->set_listener(listener);
+        if (btn_save_all_)
+          btn_save_all_->set_listener(listener);
       }
 
-      view_size.Enlarge(VIEW_BORDER_SIZE*2, VIEW_BORDER_SIZE*2);
-      return view_size;
+      virtual gfx::Size GetPreferredSize() {
+        gfx::Size size_title = title_->GetPreferredSize();
+        gfx::Size size_save_all = btn_save_all_->GetPreferredSize();
+
+        int width = size_title.width() + size_save_all.width() + VIEW_HOR_MARGIN*2;
+        int height = std::max(size_title.height(), size_save_all.height()) + VIEW_VER_MARGIN*2;
+        return gfx::Size(width, height);
+      }
+
+      virtual void Layout() {
+        const gfx::Rect& bound = bounds();
+
+        gfx::Size btn_size;
+
+        btn_size = title_->GetPreferredSize();
+        title_->SetBounds(VIEW_HOR_MARGIN, VIEW_VER_MARGIN, btn_size.width(), btn_size.height());
+
+        btn_size = btn_save_all_->GetPreferredSize();
+        btn_save_all_->SetBounds(bound.width()-btn_size.width()-VIEW_HOR_MARGIN, VIEW_VER_MARGIN, btn_size.width(), btn_size.height());
+      }
+
+private:
+
+  Link *title_;
+  Link* btn_save_all_;
+
+  DISALLOW_COPY_AND_ASSIGN(TitleBarView);
+};
+
+
+class VideoSavePanelView : public View, public ButtonListener, public LinkListener{
+public:
+
+  VideoSavePanelView();
+
+  virtual gfx::Size GetPreferredSize();
+  virtual void Layout();
+private:
+  void InitFrame();
+  void InitContent();
+
+  // Overridden from ButtonListener:
+  virtual void ButtonPressed(Button* sender, const Event& event);
+  // Overridden from LinkListener:
+  virtual void LinkClicked(Link* source, int event_flags);
+
+  void AddColumnSet(GridLayout *layout, const string16& filename, uint32 length);
+
+  TitleBarView* title_bar_view_;
+  ScrollView* scroll_view_;
+  View* scrollable_view_;
+};
+
+
+VideoSavePanelView::VideoSavePanelView() :
+title_bar_view_(NULL),
+scroll_view_(NULL),
+scrollable_view_(NULL)
+{
+  set_background(Background::CreateSolidBackground(255, 255, 255));
+  set_border(Border::CreateSolidBorder(VIEW_BORDER_SIZE, SK_ColorGRAY));
+
+  InitFrame();
+  InitContent();
+}
+
+
+
+void VideoSavePanelView::InitFrame() {
+  title_bar_view_ = new TitleBarView();
+  title_bar_view_->set_listener(this);
+  AddChildView(title_bar_view_);
+
+  scroll_view_ = new ScrollView();
+  AddChildView(scroll_view_);
+}
+
+void VideoSavePanelView::InitContent() {
+  if (scrollable_view_) {
+    scroll_view_->SetContents(NULL);
+    scrollable_view_ = NULL;
+  }
+
+  scrollable_view_ = new View();
+  scroll_view_->SetContents(scrollable_view_);
+
+  GridLayout* grid_layout = new GridLayout(scrollable_view_);
+  scrollable_view_->SetLayoutManager(grid_layout);
+
+
+  int column_set_id;
+  ColumnSet* column_set = NULL;
+
+  // top margin
+  grid_layout->AddPaddingRow(0, VIEW_VER_MARGIN);
+
+  // resource item.
+  column_set_id = 0;
+  column_set = grid_layout->AddColumnSet(column_set_id);
+  column_set->AddPaddingColumn(0, 12);  //left padding
+
+  // icon
+  column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0,
+    GridLayout::FIXED, 19, 0);
+  column_set->AddPaddingColumn(0, 3);
+
+  // filename
+  column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0,
+    GridLayout::FIXED, 120, 0);
+  column_set->AddPaddingColumn(0, 12);
+
+  // file size
+  column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0,
+    GridLayout::USE_PREF, 0, 0);
+  column_set->AddPaddingColumn(0, 12);
+
+  // save
+  column_set->AddColumn(GridLayout::LEADING, GridLayout::FILL, 0,
+    GridLayout::USE_PREF, 0, 0);
+  column_set->AddPaddingColumn(0, 12);
+
+
+
+  gfx::Rect scrollable_view_bound;
+  gfx::Size layout_size;
+  scrollable_view_bound = scrollable_view_->GetContentsBounds();
+
+  AddColumnSet(grid_layout, L"条条大路通罗马，条条大路通罗马，条条大路通罗马file1.flv", 3*1024+3);
+  AddColumnSet(grid_layout, L"file2.flv", 1024*1024*6.2);
+  AddColumnSet(grid_layout, L"https://chromium.googlesource.com/android_tools.git.flv", 300);
+  AddColumnSet(grid_layout, L"file4.flv", 1024);
+  AddColumnSet(grid_layout, L"file5.flv", 1235);
+
+  for( int i=0; i<3; i++) {
+    string16 file_name = StringPrintf(L"filename%d.flv", i);
+    AddColumnSet(grid_layout, file_name, i*1024*1024*1024);
+  }
+
+  layout_size = grid_layout->GetPreferredSize(scrollable_view_);
+  scrollable_view_->SetBounds(0, 0, layout_size.width(), layout_size.height());
+}
+
+
+gfx::Size VideoSavePanelView::GetPreferredSize() {
+  GridLayout* grid_layout = (GridLayout*)scrollable_view_->GetLayoutManager();
+  gfx::Size toobar_size = title_bar_view_->GetPreferredSize();
+  gfx::Size content_size = grid_layout->GetPreferredSize(scrollable_view_);
+  content_size.set_height(content_size.height()+toobar_size.height());
+
+  gfx::Size view_size;
+  if (content_size.height() > VIEW_HEIGHT_MAX) {
+    view_size.set_height(VIEW_HEIGHT_MAX);
+    view_size.set_width(content_size.width() + scroll_view_->GetScrollBarWidth());
+  } else {
+    view_size = content_size;
+  }
+
+  view_size.Enlarge(VIEW_BORDER_SIZE*2, VIEW_BORDER_SIZE*2);
+  return view_size;
+}
+
+void VideoSavePanelView::Layout() {
+  const gfx::Rect& bound = bounds();
+
+  gfx::Size toobar_size = title_bar_view_->GetPreferredSize();
+  title_bar_view_->SetBounds(0, 0, bound.width(), toobar_size.height());
+  scroll_view_->SetBounds(VIEW_BORDER_SIZE, toobar_size.height()+VIEW_BORDER_SIZE,
+    bound.width()-VIEW_BORDER_SIZE*2, bound.height()-toobar_size.height()-VIEW_BORDER_SIZE*2);
+}
+
+// Overridden from ButtonListener:
+void VideoSavePanelView::ButtonPressed(Button* sender, const Event& event) {
+}
+
+// Overridden from LinkListener:
+void VideoSavePanelView::LinkClicked(Link* source, int event_flags) {
+  GridLayout* grid_layout = (GridLayout*)scrollable_view_->GetLayoutManager();
+
+  if (BTN_ID_SAVE_ALL == source->id()) {
+    //scrollable_view_->RemoveAllChildViews(true);
+    InitContent();
+  } else {
+    int org_scoll_pos = 0;
+    ScrollBar* ver_scroll_bar = scroll_view_->vertical_scroll_bar();
+    if (ver_scroll_bar)
+      org_scoll_pos = ver_scroll_bar->GetPosition();
+
+
+    string16 file_name = StringPrintf(L"filename%d.flv", 333);
+    AddColumnSet(grid_layout, file_name, 1024*1024);
+
+    gfx::Size layout_size = grid_layout->GetPreferredSize(scrollable_view_);
+    scrollable_view_->SetBounds(0, 0, layout_size.width(), layout_size.height());
+
+    gfx::Size view_size = GetPreferredSize();
+    scroll_view_->GetWidget()->SetSize(view_size);
+    scroll_view_->Layout();
+
+    // resotre scroll position.
+    ver_scroll_bar = scroll_view_->vertical_scroll_bar();
+    if (0 != org_scoll_pos) {
+      const gfx::Rect& scroll_view_bounds = scroll_view_->bounds();
+      gfx::Rect scroll_to_rect(0, org_scoll_pos, scroll_view_bounds.width(), scroll_view_bounds.height());
+      scroll_view_->ScrollContentsRegionToBeVisible(scroll_to_rect);
     }
-  private:
-    virtual void Layout() {
-      const gfx::Rect& bound = bounds();
+  }
 
-      title_->SetBounds(0, 0, bound.width(), 50);
-      scroll_view_->SetBounds(0, 50, bound.width(), bound.height()-50);
-    }
+}
 
-    // Overridden from ButtonListener:
-    virtual void ButtonPressed(Button* sender, const Event& event) {
-    }
-    // Overridden from LinkListener:
-    virtual void LinkClicked(Link* source, int event_flags) {
-      GridLayout* grid_layout = (GridLayout*)content_view_->GetLayoutManager();
-      string16 file_name = StringPrintf(L"filename%d.flv", 333);
-      AddColumnSet(grid_layout, file_name, 1024*1024);
-
-      gfx::Size layout_size = grid_layout->GetPreferredSize(content_view_);
-      content_view_->SetBounds(0, 0, layout_size.width(), layout_size.height());
-
-      gfx::Size view_size = GetViewSize();
-      scroll_view_->GetWidget()->SetSize(view_size); //gfx::Rect(0, 0, view_size.width(), view_size.height()));
-      scroll_view_->Layout();
-
-    }
-
-    void AddColumnSet(GridLayout *layout, const string16& filename, uint32 length) {
-      ImageView *image_view = NULL;
-      Label* lable = NULL;
-      Link* link = NULL;
-      //TextButton *link = NULL;
-      static int group_id = 0;
+void VideoSavePanelView::AddColumnSet(GridLayout *layout, const string16& filename, uint32 length) {
+  ImageView *image_view = NULL;
+  Label* lable = NULL;
+  Link* link = NULL;
+  //TextButton *link = NULL;
+  static int group_id = 0;
 
 
-      ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
-      //static int column_set_id = 0;
+  ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
+  static int column_set_id = 0;
 
-      layout->StartRow(0, 2); //column_set_id);
-      image_view = new ImageView();
-      image_view->SetImage(rb.GetImageNamed(IDR_FOLDER_OPEN).ToImageSkia());
-      layout->AddView(image_view);
+  layout->StartRow(0, column_set_id);
+  image_view = new ImageView();
+  image_view->SetImage(rb.GetImageNamed(IDR_FOLDER_OPEN).ToImageSkia());
+  layout->AddView(image_view);
 
-      lable = new Label(filename);
-      lable->SetElideInMiddle(true);
-      lable->SetEnabledColor(SkColorSetRGB(0, 0, 128));
-      layout->AddView(lable);
+  lable = new Label(filename);
+  lable->SetElideInMiddle(true);
+  //lable->SetEnabledColor(SkColorSetRGB(0, 0, 128));
+  layout->AddView(lable);
 
-      link = new Link(L"保存");
-      link->set_listener(this);
-      //link = new TextButton(this, L"保存");
-      link->set_focusable(false);
-      link->SetEnabledColor(SkColorSetRGB(0, 0, 128));
-      link->set_id(BTN_ID_SAVE);
-      link->SetGroup(group_id);
-      layout->AddView(link);
+  string16 file_size = GetSizeText(length);
+  lable = new Label(file_size);
+  layout->AddView(lable);
 
-      link = new Link(L"复制链接");
-      link->set_listener(this);
-      //link = new TextButton(this, L"复制链接");
-      link->set_focusable(false);
-      link->set_id(BTN_ID_COPY_LINK);
-      link->SetGroup(group_id);
-      layout->AddView(link);
+  link = new Link(L"保存");
+  link->set_listener(this);
+  //link = new TextButton(this, L"保存");
+  link->set_focusable(false);
+  link->SetEnabledColor(SkColorSetRGB(0, 0, 128));
+  link->set_id(BTN_ID_SAVE);
+  link->SetGroup(group_id);
+  layout->AddView(link);
 
-      string16 file_size = GetSizeText(length); //StringPrintf(L"%dB", length);
-      lable = new Label(file_size);
-      layout->AddView(lable);
-      //column_set_id ++;
+  layout->AddPaddingRow(0, VIEW_VER_MARGIN);
 
-      layout->AddPaddingRow(0, 5);
+  group_id++;
+}
 
-      group_id++;
-    }
 
-    Label* title_;
-    ScrollView* scroll_view_;
-    //ScrollableView* content_view_;
-    View* content_view_;
-  };
 
   class VideoItemScrollView : public ScrollView {
   public:
@@ -441,7 +463,6 @@ const int kLayoutSpacing = 10;  // pixels
 
 
 VideoBarSaveExample::VideoBarSaveExample() : ExampleBase("VideoBarSave")
-,content_view_(NULL)
 ,scroll_view_(NULL)
 ,widget_(NULL){
 }
@@ -458,15 +479,29 @@ void VideoBarSaveExample::CreateExampleView(View* container) {
   //container->AddChildView(menu_button);
   //container->SetLayoutManager(
   //  new BoxLayout(BoxLayout::kVertical, 0, 0, kLayoutSpacing));
-  container->SetLayoutManager( new BoxLayout(BoxLayout::kVertical, 0, 0, 10));
   //VideoSaveButton* save_btn = new VideoSaveButton(L"下载");
 
+  //container->SetLayoutManager( new BoxLayout(BoxLayout::kVertical, 0, 0, 10));
+
+#if 0 //gloam:
+  //container->SetLayoutManager( new BoxLayout(BoxLayout::kVertical, 0, 0, 10));
+  VideoSavePanelView* content_view = new VideoSavePanelView();
+  //content_view->InitContent();
+  container->AddChildView(content_view);
+  content_view->SizeToPreferredSize();
+  //container->SizeToPreferredSize();
+#else
   ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
   save_button_ = new ImageButton(this);
   save_button_->SetImage(ImageButton::BS_NORMAL, rb.GetImageNamed(IDR_CLOSE).ToImageSkia());
   save_button_->SetImage(ImageButton::BS_HOT, rb.GetImageNamed(IDR_CLOSE_H).ToImageSkia());
   save_button_->SetImage(ImageButton::BS_PUSHED, rb.GetImageNamed(IDR_CLOSE_P).ToImageSkia());
+
+  gfx::Size btn_size = save_button_->GetPreferredSize();
+  //save_button_->SetBounds(10, 10, btn_size.width(), btn_size.height());
+  save_button_->SizeToPreferredSize();
   container->AddChildView(save_button_);
+#endif
 }
 
 void VideoBarSaveExample::ButtonPressed(Button* sender, const Event& event) {
@@ -487,12 +522,20 @@ void VideoBarSaveExample::PopupSavePanel(View* parent) {
   if (!widget_) {
     widget_ = new Widget();
 
+#if 1 //se
+    views::Widget::InitParams params(views::Widget::InitParams::TYPE_WINDOW_FRAMELESS); //TYPE_CONTROL);
+    params.ownership = views::Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET;
+    params.parent_widget =  parent->GetWidget();
+    params.transparent = false; //true;
+    params.can_activate = false;
+#else
     // Initialize the popup widget with the computed bounds.
     Widget::InitParams params(Widget::InitParams::TYPE_WINDOW_FRAMELESS);
     params.ownership = Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET;
     params.parent_widget =  parent->GetWidget(); //browser_view_->GetWidget();
     params.transparent = false; //true;
     params.can_activate = false;
+#endif
 
     //params.bounds = gfx::Rect(point.x(), point.y(), 200, 300);
     widget_->Init(params);
@@ -508,23 +551,50 @@ void VideoBarSaveExample::PopupSavePanel(View* parent) {
   //DWORD swp_flags = SWP_NOOWNERZORDER | SWP_NOACTIVATE;
   //SetWindowPos(widget_->GetNativeView(), HWND_TOP, point.x(), point.y(), 340, 480, swp_flags);
 
-  VideoSaveContentView* content_view = new VideoSaveContentView();
-  content_view->InitContent();
+  VideoSavePanelView* content_view = new VideoSavePanelView();
+  //content_view->InitContent();
   //content_view->SetBounds(0, 0, 320, 480);
   widget_->SetContentsView(content_view); //widget_container);
   gfx::Rect widget_bound(point.x(), point.y(), 250, 680);
-  gfx::Size view_size = content_view->GetViewSize();
+  gfx::Size view_size = content_view->GetPreferredSize();
   widget_bound.set_width(view_size.width());
   widget_bound.set_height(view_size.height());
-  widget_->SetBounds(widget_bound);
 
+#if 0 //gloam: focus
+  View* root_view = widget_->GetRootView();
+  View* focus_view = NULL;
+  if (root_view) {
+    FocusManager* fm = root_view->GetFocusManager();
+    if (fm) {
+      fm->SetFocusedView(content_view);
+      focus_view = fm->GetFocusedView();
+    }
+  }
+#endif
   //if (true) { //!transparent) {
   //  widget_container->set_background(
   //    Background::CreateStandardPanelBackground());
   //}
 
   // Show the widget.
+#if 0 //se
+
+
+  DWORD swp_flags = SWP_NOOWNERZORDER | SWP_NOACTIVATE;
+  //if (no_redraw)
+  //  swp_flags |= SWP_NOREDRAW;
+  if (!widget_->IsVisible())
+    swp_flags |= SWP_SHOWWINDOW;
+
+  ::SetWindowPos(widget_->GetNativeView(), HWND_TOP, widget_bound.x(), widget_bound.y(),
+    widget_bound.width(), widget_bound.height(), swp_flags);
+
+  if (widget_->GetContentsView())
+    widget_->GetContentsView()->SchedulePaint();
+#else
+  widget_->SetBounds(widget_bound);
   widget_->Show();
+#endif
 }
   
   

@@ -42,7 +42,6 @@ namespace {
       //
       ScrollView* scroll_view_;
       //ScrollableView* content_view_;
-      View* content_view_;
 
       DISALLOW_COPY_AND_ASSIGN(VideoBarSaveExample);
     };
